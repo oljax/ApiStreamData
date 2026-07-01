@@ -114,7 +114,7 @@ services:
       - confluent
 
   webserver:
-    # 1. Use the official Airflow 3 image with Python 3.11
+    
     image: apache/airflow:3.2.2-python3.11
     command: api-server
 
@@ -125,15 +125,12 @@ services:
         condition: service_completed_successfully
 
     environment:
-      - LOAD_EX=n
-      - EXECUTOR=Sequential
+      
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       - AIRFLOW_WEBSERVER_SECRET_KEY=this_is_a_very_secured_key
-      
-      # 2. Allow pip to freely install your requirements
-      - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt --no-cache-dir --no-deps
-      
-      # 3. Airflow 3 Auto-User Creation Environment Variables
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-standard kafka-python-ng requests
+     
       - _AIRFLOW_WWW_USER_USERNAME=admin
       - _AIRFLOW_WWW_USER_PASSWORD=admin
       - _AIRFLOW_WWW_USER_FIRSTNAME=Admin
@@ -150,7 +147,7 @@ services:
     ports:
       - "8080:8080"
     healthcheck:
-      # 4. Airflow 3 uses standard web connection checks or the modern PID location
+      
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/v2/monitor/health"]
       interval: 30s
       timeout: 30s
@@ -159,9 +156,9 @@ services:
     networks:
       - confluent
 
-
+ 
   scheduler:
-    # 1. MUST match the exact same Airflow 3 tag as your webserver
+   
     image: apache/airflow:3.2.2-python3.11
     command: scheduler
     depends_on:
@@ -171,12 +168,10 @@ services:
         condition: service_completed_successfully
 
     environment:
-      - LOAD_EX=n
-      - EXECUTOR=Sequential
+      - AIRFLOW__CORE__EXECUTOR=LocalExecutor
       - AIRFLOW__DATABASE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres:5432/airflow
       
-      # 2. Add the pip variable here too so the scheduler can read your DAG dependencies!
-      - _PIP_ADDITIONAL_REQUIREMENTS=-r /opt/airflow/requirements.txt --no-cache-dir --no-deps
+      - _PIP_ADDITIONAL_REQUIREMENTS=apache-airflow-providers-standard kafka-python-ng requests
     volumes:
       - ./dags:/opt/airflow/dags
       - ./requirements.txt:/opt/airflow/requirements.txt
@@ -196,7 +191,7 @@ services:
         max-file: "3"
     networks:
       - confluent
-    # --- ADDED HEALTHCHECK FOR AIRFLOW DEPENDENCIES ---
+    
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U airflow -d airflow"]
       interval: 10s
